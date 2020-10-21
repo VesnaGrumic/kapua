@@ -42,14 +42,14 @@ import org.eclipse.kapua.qa.common.TestBase;
 import org.eclipse.kapua.qa.common.TestJAXBContextProvider;
 import org.eclipse.kapua.qa.common.cucumber.CucAccount;
 import org.eclipse.kapua.qa.common.cucumber.CucConfig;
-import org.eclipse.kapua.service.account.AccountService;
-import org.eclipse.kapua.service.account.AccountFactory;
 import org.eclipse.kapua.service.account.Account;
-import org.eclipse.kapua.service.account.AccountCreator;
-import org.eclipse.kapua.service.account.Organization;
-import org.eclipse.kapua.service.account.AccountQuery;
-import org.eclipse.kapua.service.account.AccountListResult;
 import org.eclipse.kapua.service.account.AccountAttributes;
+import org.eclipse.kapua.service.account.AccountCreator;
+import org.eclipse.kapua.service.account.AccountFactory;
+import org.eclipse.kapua.service.account.AccountListResult;
+import org.eclipse.kapua.service.account.AccountQuery;
+import org.eclipse.kapua.service.account.AccountService;
+import org.eclipse.kapua.service.account.Organization;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -923,7 +923,6 @@ public class AccountServiceSteps extends TestBase {
     public void iTryToEditAccountWithName(String description) throws Exception {
         Account account = (Account) stepData.get(LAST_ACCOUNT);
         account.setDescription(description);
-
         try {
             primeException();
             accountService.update(account);
@@ -932,8 +931,8 @@ public class AccountServiceSteps extends TestBase {
         }
     }
 
-    @And("^I create an account with name \"([^\"]*)\", organization name \"([^\"]*)\" and email adress \"([^\"]*)\"$")
-    public void iCreateAAccountWithNameOrganizationNameAndEmailAdress(String accountName, String organizationName, String email) throws Exception {
+    @And("^I create an account with name \"([^\"]*)\", organization name \"([^\"]*)\" and email address \"([^\"]*)\"$")
+    public void iCreateAAccountWithNameOrganizationNameAndEmailAddress(String accountName, String organizationName, String email) throws Exception {
         AccountCreator accountCreator = accountFactory.newCreator(getCurrentScopeId());
         accountCreator.setName(accountName);
         accountCreator.setOrganizationName(organizationName);
@@ -948,6 +947,82 @@ public class AccountServiceSteps extends TestBase {
             stepData.put(LAST_ACCOUNT, account);
         } catch (KapuaException ex) {
             verifyException(ex);
+        }
+    }
+
+    @Given("^I create an account with name \"([^\"]*)\", organization name \"([^\"]*)\", contact name \"([^\"]*)\" and email address \"([^\"]*)\"$")
+    public void iCreateAnAccountWithNameOrganizationNameContactNameAndEmailAddress(String accountName, String organizationName, String contactName, String email) throws Exception {
+        AccountCreator accountCreator = accountFactory.newCreator(getCurrentScopeId());
+        accountCreator.setName(accountName);
+        accountCreator.setOrganizationName(organizationName);
+        accountCreator.setOrganizationEmail(email);
+        accountCreator.setOrganizationPersonName(contactName);
+
+        try {
+            primeException();
+            stepData.remove(LAST_ACCOUNT);
+            stepData.remove(LAST_ACCOUNT);
+            Account account = accountService.create(accountCreator);
+            stepData.put(LAST_ACCOUNT, account);
+            stepData.put(LAST_ACCOUNT, account);
+        } catch (KapuaException ex) {
+            verifyException(ex);
+        }
+    }
+
+    @Given("^I create an account with name \"([^\"]*)\", organization name \"([^\"]*)\", phone number \"([^\"]*)\" and email address \"([^\"]*)\"$")
+    public void iCreateAnAccountWithNameOrganizationNamePhoneNumberAndEmailAddress(String accountName, String organizationName, String phoneNumber, String email) throws Exception {
+        AccountCreator accountCreator = accountFactory.newCreator(getCurrentScopeId());
+        accountCreator.setName(accountName);
+        accountCreator.setOrganizationName(organizationName);
+        accountCreator.setOrganizationEmail(email);
+        accountCreator.setOrganizationPhoneNumber(phoneNumber);
+
+        try {
+            primeException();
+            stepData.remove(LAST_ACCOUNT);
+            stepData.remove(LAST_ACCOUNT);
+            Account account = accountService.create(accountCreator);
+            stepData.put(LAST_ACCOUNT, account);
+            stepData.put(LAST_ACCOUNT, account);
+        } catch (KapuaException ex) {
+            verifyException(ex);
+        }
+    }
+
+    @Given("^I create an account with name \"([^\"]*)\", organization name \"([^\"]*)\", organization address 1 \"([^\"]*)\" and email address \"([^\"]*)\"$")
+    public void iCreateAnAccountWithNameOrganizationNameOrganizationAddress1AndEmailAddress(String accountName, String organizationName, String organizationAddress1, String email) throws Exception {
+        AccountCreator accountCreator = accountFactory.newCreator(getCurrentScopeId());
+        accountCreator.setName(accountName);
+        accountCreator.setOrganizationName(organizationName);
+        accountCreator.setOrganizationEmail(email);
+        accountCreator.setOrganizationAddressLine1(organizationAddress1);
+
+        try {
+            primeException();
+            stepData.remove(LAST_ACCOUNT);
+            stepData.remove(LAST_ACCOUNT);
+            Account account = accountService.create(accountCreator);
+            stepData.put(LAST_ACCOUNT, account);
+            stepData.put(LAST_ACCOUNT, account);
+        } catch (KapuaException ex) {
+            verifyException(ex);
+        }
+    }
+
+    @When("^An account with name \"([^\"]*)\" is searched$")
+    public void accountWithNameIsSearched(String accountName) throws Exception {
+        try {
+            stepData.remove("account");
+            primeException();
+            AccountQuery query = accountFactory.newQuery(SYS_SCOPE_ID);
+            query.setPredicate(query.attributePredicate(AccountAttributes.NAME, accountName, AttributePredicate.Operator.EQUAL));
+            AccountListResult queryResult = accountService.query(query);
+            Account foundAccount = queryResult.getFirstItem();
+            stepData.put("account", foundAccount);
+            stepData.put("queryResult", queryResult);
+        } catch (KapuaException ke) {
+            verifyException(ke);
         }
     }
 
@@ -1013,6 +1088,19 @@ public class AccountServiceSteps extends TestBase {
     public void iFindAccounts(int numberOfAccounts) {
         int foundAccounts = (int) stepData.get("NumberOfFoundAccounts");
         assertEquals(foundAccounts, numberOfAccounts);
+    }
+
+    @When("^Organization name of account \"([^\"]*)\" is changed into \"([^\"]*)\"$")
+    public void organizationNameOfAccountIsChangedInto(String accountName, String newOrganizationName) throws Exception {
+        Account tmpAccount = accountService.findByName(accountName);
+        AccountCreator accountCreator = accountFactory.newCreator(tmpAccount.getId());
+        accountCreator.setOrganizationName(newOrganizationName);
+        try {
+            primeException();
+            accountService.update(tmpAccount);
+        } catch (Exception e) {
+            verifyException(e);
+        }
     }
 
 
